@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot dev log</title>
+<style>
+  :root {
+    --accent: #c2dcff;
+    --accent-deep: #4a7fc9;
+    --accent-text: #1e4a80;
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --border: #e3e9f2;
+    --border-strong: #cdd8e8;
+    --text-primary: #16202e;
+    --text-secondary: #5c6b80;
+    --text-muted: #90a0b5;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(20, 40, 70, 0.04), 0 4px 16px rgba(20, 40, 70, 0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 15% 0%, rgba(194, 220, 255, 0.35), transparent 45%);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 2.5rem 1.25rem;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 800px; margin: 0 auto; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .title-row { display: flex; align-items: center; gap: 12px; }
+  .icon-badge {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  h1 { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 2px 0 0; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  #count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-text);
+    background: var(--accent);
+    padding: 5px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .export-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-strong);
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .export-btn:hover { background: #eef3fb; color: var(--accent-text); border-color: var(--accent-deep); }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+  .stat-num { font-size: 20px; font-weight: 700; line-height: 1.1; }
+  .stat-label { font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; font-weight: 600; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    border-bottom: 1.5px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    padding: 7px 8px 7px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .tab:hover { background: #eef3fb; color: var(--text-primary); }
+  .tab.active {
+    background: var(--accent-deep);
+    color: #fff;
+  }
+  .tab-count {
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+  .tab.active .tab-count { background: rgba(255,255,255,0.25); }
+  .tab .tab-remove {
+    margin-left: 2px;
+    opacity: 0.5;
+    font-size: 12px;
+    padding: 2px;
+  }
+  .tab.active .tab-remove { opacity: 0.8; }
+  .tab .tab-remove:hover { opacity: 1; }
+  .tab-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent-text);
+    background: #eef3fb;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  .tab-add:hover { background: var(--accent); border-color: var(--accent-deep); }
+
+  .add-bot-row {
+    display: none;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+  .add-bot-row.visible { display: flex; }
+  .add-bot-row input { flex: 1; }
+  .add-bot-row button { white-space: nowrap; }
+  .add-bot-row .cancel-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-strong);
+  }
+  .add-bot-row .cancel-btn:hover { background: #f0f2f5; color: var(--text-primary); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .card-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-text);
+    margin: 0 0 1rem;
+  }
+
+  label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+  input, select, textarea, button { font-family: inherit; font-size: 14px; }
+  input, select, textarea {
+    width: 100%;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: #fbfcfe;
+    color: var(--text-primary);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-deep);
+    box-shadow: 0 0 0 3px rgba(194, 220, 255, 0.55);
+    background: #fff;
+  }
+  textarea { resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+
+  button {
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--accent-deep);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  button:hover { background: #3d6cb0; }
+  button:active { transform: scale(0.98); }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+  .hint { font-size: 12px; color: var(--text-muted); }
+
+  .error { font-size: 13px; color: #c0392b; margin: 8px 0 0; display: none; }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-group label { margin: 0; white-space: nowrap; }
+  .filters select { width: auto; min-width: 150px; padding: 7px 10px; }
+  .search-group { flex: 1; min-width: 180px; }
+  .search-group input { padding: 7px 10px; }
+
+  .list-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .entry {
+    display: flex;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s ease;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .entry:last-child { border-bottom: none; }
+  .entry:hover { background: #f8fafd; }
+  .entry-date {
+    min-width: 82px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-top: 2px;
+  }
+  .entry-body { flex: 1; min-width: 0; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+  .badge-feature { background: #e1f5ee; color: #0a6b52; }
+  .badge-bugfix { background: #fdeae5; color: #b3401f; }
+  .badge-command { background: #e6f1fb; color: #23629e; }
+  .badge-config { background: #eeedfe; color: #4c44a6; }
+  .badge-deploy { background: #faeeda; color: #8a5a0c; }
+  .badge-refactor { background: #fbeaf0; color: #a4315a; }
+  .badge-other { background: #eef0f3; color: #565b64; }
+  .badge-tool {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+  .entry-desc { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-primary); white-space: pre-wrap; }
+  .entry-actions { display: flex; flex-direction: column; gap: 6px; }
+  .icon-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border-strong);
+    height: 30px;
+    width: 30px;
+    padding: 0;
+    font-weight: 500;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn.edit-btn:hover { color: var(--accent-deep); border-color: var(--accent-deep); background: #eef3fb; }
+  .icon-btn.del-btn:hover { color: #c0392b; border-color: #f3c8c0; background: #fdf3f1; }
+
+  .empty {
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+  .empty-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 30, 45, 0.4);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 1rem;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.5rem;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 12px 40px rgba(20,30,45,0.25);
+  }
+  .modal p { font-size: 14px; color: var(--text-primary); margin: 0 0 1.25rem; line-height: 1.5; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-actions .cancel-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-strong);
+  }
+  .modal-actions .confirm-btn { background: #c0392b; }
+  .modal-actions .confirm-btn:hover { background: #a5301f; }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .entry { flex-wrap: wrap; }
+    .entry-actions { flex-direction: row; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title-row">
+      <div class="icon-badge">🤖</div>
+      <div>
+        <h1 id="bot-title">Bot dev log</h1>
+        <p class="subtitle">Track what's changed on each bot</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="export-btn" id="export-btn">Export JSON</button>
+      <span id="count"></span>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="add-bot-row" id="add-bot-row">
+    <input type="text" id="new-bot-input" placeholder="Bot name">
+    <button id="confirm-add-bot">Add</button>
+    <button class="cancel-btn" id="cancel-add-bot">Cancel</button>
+  </div>
+
+  <div class="card">
+    <p class="card-label" id="form-mode-label">New entry</p>
+    <div class="row">
+      <div>
+        <label for="date-input">Date</label>
+        <input type="date" id="date-input">
+      </div>
+      <div>
+        <label for="cat-input">Type</label>
+        <select id="cat-input">
+          <option value="feature">Feature</option>
+          <option value="bugfix">Bug fix</option>
+          <option value="command">Command added</option>
+          <option value="config">Config change</option>
+          <option value="deploy">Deployment</option>
+          <option value="refactor">Refactor</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label for="tool-input">Tool used</label>
+        <select id="tool-input">
+          <option value="claude">Claude</option>
+          <option value="chatgpt">ChatGPT</option>
+          <option value="manual">Manual / by hand</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <label for="desc-input">What did you do?</label>
+    <textarea id="desc-input" rows="2" placeholder="Added a /remind command with timezone support"></textarea>
+    <p class="error" id="form-error">Enter a description first.</p>
+    <div class="actions">
+      <span class="hint" id="edit-hint"></span>
+      <span style="display:flex; gap:8px;">
+        <button class="cancel-btn" id="cancel-edit-btn" style="display:none; background:transparent; color:var(--text-secondary); border:1.5px solid var(--border-strong);">Cancel</button>
+        <button id="add-btn">+ Add entry</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="search-group">
+      <input type="text" id="search-input" placeholder="Search entries...">
+    </div>
+    <div class="filter-group">
+      <label>Type</label>
+      <select id="filter-cat">
+        <option value="all">All types</option>
+        <option value="feature">Feature</option>
+        <option value="bugfix">Bug fix</option>
+        <option value="command">Command added</option>
+        <option value="config">Config change</option>
+        <option value="deploy">Deployment</option>
+        <option value="refactor">Refactor</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Tool</label>
+      <select id="filter-tool">
+        <option value="all">All tools</option>
+        <option value="claude">Claude</option>
+        <option value="chatgpt">ChatGPT</option>
+        <option value="manual">Manual / by hand</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="list-card">
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <p id="modal-text"></p>
+    <div class="modal-actions">
+      <button class="cancel-btn" id="modal-cancel">Cancel</button>
+      <button class="confirm-btn" id="modal-confirm">Remove</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BOTS_KEY = 'bot-dev-log-bots';
+const ACTIVE_KEY = 'bot-dev-log-active';
+const ENTRIES_PREFIX = 'bot-dev-log-entries-';
+
+const DEFAULT_BOTS = ['SMP United', 'Orix', 'Orix Partner', 'Orix Help', 'ABC SMP'];
+
+const catLabels = {
+  feature: 'Feature', bugfix: 'Bug fix', command: 'Command added',
+  config: 'Config change', deploy: 'Deployment', refactor: 'Refactor', other: 'Other'
+};
+const toolLabels = {
+  claude: 'Claude', chatgpt: 'ChatGPT', manual: 'Manual', other: 'Other'
+};
+
+let bots = [];
+let activeBot = '';
+let entries = [];
+let editingId = null;
+let pendingModalAction = null;
+
+const tabsEl = document.getElementById('tabs');
+const statsEl = document.getElementById('stats');
+const addBotRow = document.getElementById('add-bot-row');
+const newBotInput = document.getElementById('new-bot-input');
+const confirmAddBot = document.getElementById('confirm-add-bot');
+const cancelAddBot = document.getElementById('cancel-add-bot');
+const botTitle = document.getElementById('bot-title');
+const exportBtn = document.getElementById('export-btn');
+
+const dateInput = document.getElementById('date-input');
+const catInput = document.getElementById('cat-input');
+const toolInput = document.getElementById('tool-input');
+const descInput = document.getElementById('desc-input');
+const formError = document.getElementById('form-error');
+const addBtn = document.getElementById('add-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const formModeLabel = document.getElementById('form-mode-label');
+const editHint = document.getElementById('edit-hint');
+const searchInput = document.getElementById('search-input');
+const filterCat = document.getElementById('filter-cat');
+const filterTool = document.getElementById('filter-tool');
+const list = document.getElementById('list');
+const countEl = document.getElementById('count');
+
+const modalOverlay = document.getElementById('modal-overlay');
+const modalText = document.getElementById('modal-text');
+const modalConfirm = document.getElementById('modal-confirm');
+const modalCancel = document.getElementById('modal-cancel');
+
+dateInput.value = new Date().toISOString().slice(0, 10);
+
+function entryKey(bot) {
+  return ENTRIES_PREFIX + bot;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showModal(message, onConfirm) {
+  modalText.textContent = message;
+  pendingModalAction = onConfirm;
+  modalOverlay.classList.add('visible');
+}
+function hideModal() {
+  modalOverlay.classList.remove('visible');
+  pendingModalAction = null;
+}
+modalCancel.addEventListener('click', hideModal);
+modalConfirm.addEventListener('click', () => {
+  if (pendingModalAction) pendingModalAction();
+  hideModal();
+});
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) hideModal(); });
+
+function loadBots() {
+  try {
+    const raw = localStorage.getItem(BOTS_KEY);
+    bots = raw ? JSON.parse(raw) : DEFAULT_BOTS.slice();
+  } catch (e) {
+    bots = DEFAULT_BOTS.slice();
+  }
+  if (!Array.isArray(bots) || bots.length === 0) bots = DEFAULT_BOTS.slice();
+
+  activeBot = localStorage.getItem(ACTIVE_KEY) || bots[0];
+  if (!bots.includes(activeBot)) activeBot = bots[0];
+}
+
+function saveBots() {
+  localStorage.setItem(BOTS_KEY, JSON.stringify(bots));
+  localStorage.setItem(ACTIVE_KEY, activeBot);
+}
+
+function countForBot(bot) {
+  try {
+    const raw = localStorage.getItem(entryKey(bot));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.length : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  bots.forEach(bot => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (bot === activeBot ? ' active' : '');
+    tab.innerHTML = `<span>${escapeHtml(bot)}</span><span class="tab-count">${countForBot(bot)}</span>` +
+      (bots.length > 1 ? `<span class="tab-remove" data-bot="${escapeHtml(bot)}" title="Remove bot">✕</span>` : '');
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tab-remove')) return;
+      switchBot(bot);
+    });
+    tabsEl.appendChild(tab);
+  });
+
+  const addTab = document.createElement('div');
+  addTab.className = 'tab-add';
+  addTab.textContent = '+ New';
+  addTab.addEventListener('click', () => {
+    addBotRow.classList.add('visible');
+    newBotInput.value = '';
+    newBotInput.focus();
+  });
+  tabsEl.appendChild(addTab);
+
+  tabsEl.querySelectorAll('.tab-remove').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const bot = el.getAttribute('data-bot');
+      showModal(`Remove "${bot}" and all its entries? This can't be undone.`, () => removeBot(bot));
+    });
+  });
+}
+
+function renderStats() {
+  const total = entries.length;
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thisWeek = entries.filter(e => new Date(e.date + 'T00:00:00') >= weekAgo).length;
+  const byTool = {};
+  entries.forEach(e => { byTool[e.tool] = (byTool[e.tool] || 0) + 1; });
+  const topTool = Object.keys(byTool).sort((a, b) => byTool[b] - byTool[a])[0];
+  const byCat = {};
+  entries.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + 1; });
+  const topCat = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a])[0];
+
+  const cards = [
+    { num: total, label: 'Total entries' },
+    { num: thisWeek, label: 'This week' },
+    { num: topTool ? toolLabels[topTool] : '—', label: 'Most-used tool' },
+    { num: topCat ? catLabels[topCat] : '—', label: 'Most common type' }
+  ];
+  statsEl.innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="stat-num">${c.num}</div>
+      <div class="stat-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+function switchBot(bot) {
+  activeBot = bot;
+  saveBots();
+  cancelEdit();
+  botTitle.textContent = bot + ' dev log';
+  renderTabs();
+  loadEntries();
+}
+
+function removeBot(bot) {
+  bots = bots.filter(b => b !== bot);
+  localStorage.removeItem(entryKey(bot));
+  if (activeBot === bot) activeBot = bots[0];
+  saveBots();
+  botTitle.textContent = activeBot + ' dev log';
+  renderTabs();
+  loadEntries();
+}
+
+confirmAddBot.addEventListener('click', () => {
+  const name = newBotInput.value.trim();
+  if (!name) {
+    newBotInput.focus();
+    return;
+  }
+  if (!bots.includes(name)) bots.push(name);
+  activeBot = name;
+  saveBots();
+  addBotRow.classList.remove('visible');
+  botTitle.textContent = activeBot + ' dev log';
+  renderTabs();
+  loadEntries();
+});
+
+cancelAddBot.addEventListener('click', () => {
+  addBotRow.classList.remove('visible');
+});
+
+newBotInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmAddBot.click();
+  if (e.key === 'Escape') cancelAddBot.click();
+});
+
+function loadEntries() {
+  try {
+    const raw = localStorage.getItem(entryKey(activeBot));
+    entries = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    entries = [];
+  }
+  render();
+  renderTabs();
+}
+
+function saveEntries() {
+  try {
+    localStorage.setItem(entryKey(activeBot), JSON.stringify(entries));
+  } catch (e) {
+    console.error('Could not save entries', e);
+  }
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function render() {
+  renderStats();
+
+  const cf = filterCat.value;
+  const tf = filterTool.value;
+  const q = searchInput.value.trim().toLowerCase();
+  const filtered = entries.filter(e =>
+    (cf === 'all' || e.cat === cf) &&
+    (tf === 'all' || e.tool === tf) &&
+    (q === '' || e.desc.toLowerCase().includes(q))
+  );
+
+  countEl.textContent = entries.length + (entries.length === 1 ? ' entry' : ' entries');
+
+  if (filtered.length === 0) {
+    list.innerHTML = entries.length === 0
+      ? `<div class="empty"><span class="empty-icon">📋</span>No entries yet for ${escapeHtml(activeBot)}.</div>`
+      : `<div class="empty"><span class="empty-icon">🔍</span>Nothing matches your filters.</div>`;
+    return;
+  }
+
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+  list.innerHTML = sorted.map(e => `
+    <div class="entry">
+      <div class="entry-date">${formatDate(e.date)}</div>
+      <div class="entry-body">
+        <span class="badge badge-${e.cat}">${catLabels[e.cat]}</span>
+        <span class="badge badge-tool">${toolLabels[e.tool] || e.tool}</span>
+        <p class="entry-desc">${escapeHtml(e.desc)}</p>
+      </div>
+      <div class="entry-actions">
+        <button class="icon-btn edit-btn" data-id="${e.id}" aria-label="Edit entry" title="Edit">✎</button>
+        <button class="icon-btn del-btn" data-id="${e.id}" aria-label="Delete entry" title="Delete">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      showModal('Delete this entry? This can\'t be undone.', () => {
+        entries = entries.filter(e => String(e.id) !== id);
+        saveEntries();
+        render();
+        renderTabs();
+      });
+    });
+  });
+
+  list.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const entry = entries.find(e => String(e.id) === id);
+      if (!entry) return;
+      startEdit(entry);
+    });
+  });
+}
+
+function startEdit(entry) {
+  editingId = entry.id;
+  dateInput.value = entry.date;
+  catInput.value = entry.cat;
+  toolInput.value = entry.tool;
+  descInput.value = entry.desc;
+  formModeLabel.textContent = 'Edit entry';
+  addBtn.textContent = 'Save changes';
+  cancelEditBtn.style.display = 'inline-block';
+  editHint.textContent = 'Editing an existing entry';
+  descInput.focus();
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  formModeLabel.textContent = 'New entry';
+  addBtn.textContent = '+ Add entry';
+  cancelEditBtn.style.display = 'none';
+  editHint.textContent = '';
+  descInput.value = '';
+  dateInput.value = new Date().toISOString().slice(0, 10);
+  formError.style.display = 'none';
+}
+
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+addBtn.addEventListener('click', () => {
+  const desc = descInput.value.trim();
+  if (!desc) {
+    formError.style.display = 'block';
+    return;
+  }
+  formError.style.display = 'none';
+
+  if (editingId !== null) {
+    const idx = entries.findIndex(e => e.id === editingId);
+    if (idx !== -1) {
+      entries[idx] = {
+        ...entries[idx],
+        date: dateInput.value || new Date().toISOString().slice(0, 10),
+        cat: catInput.value,
+        tool: toolInput.value,
+        desc
+      };
+    }
+    cancelEdit();
+  } else {
+    entries.push({
+      id: Date.now(),
+      date: dateInput.value || new Date().toISOString().slice(0, 10),
+      cat: catInput.value,
+      tool: toolInput.value,
+      desc
+    });
+    descInput.value = '';
+  }
+  saveEntries();
+  render();
+  renderTabs();
+});
+
+descInput.addEventListener('input', () => {
+  if (descInput.value.trim()) formError.style.display = 'none';
+});
+descInput.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addBtn.click();
+});
+
+searchInput.addEventListener('input', render);
+filterCat.addEventListener('change', render);
+filterTool.addEventListener('change', render);
+
+exportBtn.addEventListener('click', () => {
+  const data = JSON.stringify({ bot: activeBot, entries }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = activeBot.replace(/\s+/g, '-').toLowerCase() + '-dev-log.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+loadBots();
+botTitle.textContent = activeBot + ' dev log';
+renderTabs();
+loadEntries();
+</script>
+</body>
+</html>
